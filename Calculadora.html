@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <title>Calculadora</title>
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400" rel="stylesheet">
+    <link rel="icon" href="img/logo.ico">
+    <link rel="stylesheet" type="text/css">
+    <style>
+        *{
+      font-family: 'Open Sans', sans-serif;
+      box-sizing: border-box;
+      -webkit-box-sizing: border-box;
+      -moz-box-sizing: border-box;
+      }
+      body{
+        margin: 0;
+        padding: 0;
+        overflow-x: hidden;
+        background: url('img/fondo.jpg');
+        background-size: cover;
+        background-repeat: no-repeat;
+
+      }
+      .calculator {
+      /* w:298 x h:397 pt */
+      width: 308px;
+      height: 405px;
+      background-color: transparent;
+      color: white;
+      font-family: Helvetica;
+      margin:auto;
+      margin-bottom: 86px;
+      padding:0px;
+      }
+
+      .calculator-display {
+      /* h: 98 pt */
+      width: 100%;
+      height: 98px;
+      background-color: #4A5559;
+      font-size: 40px;
+      text-align: right;
+      padding-right: 20px;
+      }
+
+      .calculator-output {
+      line-height: 98px;
+
+      }
+      .calculator-keyboard{
+        width: 100%;
+      }
+      .calculator-key {
+      /*   73 x 72 pt */
+      width: 75px;
+      height: 75px;
+      border: 1px solid #789198;
+      background-color: transparent;
+      color: white;
+      font-size: 20px;
+      margin:1px;
+      }
+      .calculator-key.number {
+      background-color: #8FB3BC;
+      }
+      .calculator-key.operator {
+      background-color: #8FC9D8;
+      }
+      h2{
+        margin-top: 100px;
+        text-align: center;
+        font-size: Helvetica;
+        color: white;
+        background: rgba(0, 150, 136, 0.7);
+        font-weight: 500;
+      }
+      .calculator-key:first-of-type{
+        margin-left: 0px;
+      }
+      .calculator-key:last-of-type{
+        margin-right: 0px;
+        width: 77px
+      }
+      .titulo{
+        width: 308px;
+        margin: auto;
+      }
+    </style>
+</head>
+<body>
+  <div class="titulo">
+    <h2>Calculadora</h2>
+  </div>
+  <div id="calculator" class="calculator">
+    <div class="calculator-display">
+      <span id="calculator-output" class="calculator-output">0</span>
+    </div>
+    <div class="calculator-keyboard">
+      <div class="calculator-row">
+        <button data-type="number" data-value="7" class="calculator-key number">7</buttom>
+        <button data-type="number" data-value="8" class="calculator-key number">8</buttom>
+        <button data-type="number" data-value="9" class="calculator-key number">9</buttom>
+        <button data-type="operator" data-value="/" class="calculator-key operator">/</buttom>
+      </div>
+      <div class="calculator-row">
+        <button data-type="number" data-value="4" class="calculator-key number">4</buttom>
+        <button data-type="number" data-value="5" class="calculator-key number">5</buttom>
+        <button data-type="number" data-value="6" class="calculator-key number">6</buttom>
+        <button data-type="operator" data-value="*" class="calculator-key operator">X</buttom>
+      </div>
+      <div class="calculator-row">
+        <button data-type="number" data-value="1" class="calculator-key number">1</buttom>
+        <button data-type="number" data-value="2" class="calculator-key number">2</buttom>
+        <button data-type="number" data-value="3" class="calculator-key number">3</buttom>
+        <button data-type="operator" data-value="-" class="calculator-key operator">-</buttom>
+      </div>
+      <div class="calculator-row">
+        <button data-type="number" data-value="0" class="calculator-key number">0</buttom>
+        <button data-type="action" data-value="C" class="calculator-key operator">C</buttom>
+        <button data-type="action" data-value="=" class="calculator-key operator">=</buttom>
+        <button data-type="operator" data-value="+" class="calculator-key operator">+</buttom>
+      </div>
+    </div>
+  </div>
+    <script type="text/javascript">
+
+    var calculator = document.getElementById('calculator');
+    var output = document.getElementById('calculator-output');
+
+    calculator.addEventListener('click', calculatorClick);
+
+    function calculatorClick(event) {
+      var target = event.target;
+      var dataset = target.dataset;
+      var value = dataset.value;
+      var type = dataset.type;
+      if (type) {
+        calc.input(type, value);
+        result = calc.output() ;
+        output.innerHTML = result;
+      }
+    }
+
+    //  States
+    const STATE_LEFT_OPERAND = 'left_operand';
+    const STATE_RIGHT_OPERAND = 'right_operand';
+    const STATE_OPERATOR = 'operator';
+    const STATE_RESULT = 'result';
+
+    // Inputs
+    const TYPE_NUMBER = 'number';
+    const TYPE_ACTION = 'action';
+    const TYPE_OPERATOR = 'operator';
+
+    // Operators
+    const OPERATOR_DIVISION = '/';
+    const OPERATOR_MULTIPLICATION = '*';
+    const OPERATOR_ADDITION = '+';
+    const OPERATOR_SUBTRACTION = '-';
+
+    // Actions
+    const ACTION_CLEAR = 'C';
+    const ACTION_RESULT = '=';
+
+
+
+    class BaseStrategy {
+      constructor(delegate) {
+        this.delegate = delegate;
+      }
+      onNumber(number) {
+         this.delegate.acc.push(number);
+      }
+      onOperator(operator){}
+      onResult(){}
+      onClear() {
+        this.delegate.reset();
+      }
+    }
+
+    class LeftOperandStrategy extends BaseStrategy {
+      onOperator(operator){
+        let dg = this.delegate;
+        dg.setOperator(operator);
+        dg.setLeftOperand(dg.getAccumulator());
+        dg.transition(STATE_OPERATOR);
+      }
+    }
+    class OperatorStrategy  extends BaseStrategy {
+      onNumber(number) {
+        let dg = this.delegate;
+        dg.clearAccumulator();
+        dg.acc.push(number);
+        dg.transition(STATE_RIGHT_OPERAND);
+      }
+      onOperator(operator) {
+        this.delegate.setOperator(operator);
+      }
+      onResult() {
+        let dg = this.delegate;
+        dg.setRightOperand(dg.getAccumulator());
+        dg.setAccumulator(dg.operation());
+      }
+    }
+
+    class RightOperandStrategy  extends BaseStrategy {
+      onOperator(operator) {
+        let dg = this.delegate;
+        let result = 0;
+        dg.setRightOperand(dg.getAccumulator());
+        result = dg.operation();
+        dg.setAccumulator(result);
+        dg.setLeftOperand(result);
+        dg.setOperator(operator);
+        dg.transition(STATE_OPERATOR);
+      }
+      onResult() {
+        let dg = this.delegate;
+        let result = 0;
+        let rightOperand = 0;
+        dg.setRightOperand(dg.getAccumulator());
+        result = dg.operation();
+        dg.setAccumulator(result);
+        rightOperand = dg.getRightOperand();
+        if (dg.getOperator() === OPERATOR_SUBTRACTION) {
+          rightOperand = rightOperand * -1;
+          dg.setOperator(OPERATOR_ADDITION);
+        }
+        if (dg.getOperator() === OPERATOR_DIVISION) {
+          rightOperand = 1 / rightOperand;
+          dg.setOperator(OPERATOR_MULTIPLICATION);
+        }
+        dg.setLeftOperand(rightOperand);
+        dg.transition(STATE_RESULT);
+      }
+    }
+
+    class ResultOperandStrategy  extends BaseStrategy {
+      onOperator(operator) {
+        let dg = this.delegate;
+        dg.setOperator(operator);
+        dg.setLeftOperand(dg.getAccumulator());
+        dg.transition(STATE_OPERATOR);
+      }
+      onResult() {
+        let dg = this.delegate;
+        dg.setRightOperand(dg.getAccumulator());
+        dg.setAccumulator(dg.operation());
+      }
+    }
+
+    // ES6
+    class Calculator {
+      constructor() {
+        this.init();
+      }
+
+      init() {
+        this.acc = [];
+        this.operator = null;
+        this.leftOperand = 0;
+        this.rightOperand = 0;
+        this.state = null;
+        this.strategy = null;
+        this.transition(STATE_LEFT_OPERAND);
+      }
+
+      transition(state) {
+        this.state = state;
+        switch(state) {
+          case STATE_LEFT_OPERAND:
+            this.strategy = new LeftOperandStrategy(this);
+            break;
+          case STATE_RIGHT_OPERAND:
+            this.strategy = new RightOperandStrategy(this);
+            break;
+          case STATE_OPERATOR:
+            this.strategy = new OperatorStrategy(this);
+            break;
+          case STATE_RESULT:
+            this.strategy = new ResultOperandStrategy(this);
+            break;
+        }
+      }
+
+      input(type, value) {
+        switch(type) {
+          case TYPE_NUMBER:
+            this.strategy.onNumber(value);
+            break;
+          case TYPE_OPERATOR:
+            this.strategy.onOperator(value);
+            break;
+          case TYPE_ACTION:
+              if (value === ACTION_CLEAR){
+                this.strategy.onClear();
+              }
+              if (value === ACTION_RESULT){
+                this.strategy.onResult();
+              }
+            break;
+        }
+        this.logger();
+      }
+
+      operation () {
+        let operator = this.operator;
+        let result = 0;
+
+        switch(operator) {
+          case OPERATOR_DIVISION:
+            result = this.leftOperand / this.rightOperand;
+          break;
+          case OPERATOR_MULTIPLICATION:
+            result = this.leftOperand * this.rightOperand;
+          break;
+          case OPERATOR_ADDITION:
+            result = this.leftOperand + this.rightOperand;
+          break;
+          case OPERATOR_SUBTRACTION:
+            result = this.leftOperand - this.rightOperand;
+          break;
+        }
+        return result;
+      }
+
+      setLeftOperand(value){
+        this.leftOperand = value;
+      }
+      getLeftOperand(){
+        return this.leftOperand;
+      }
+      setRightOperand(value){
+        this.rightOperand = value;
+      }
+      getRightOperand(){
+        return this.rightOperand;
+      }
+      setOperator(value){
+        this.operator = value;
+      }
+      getOperator(){
+        return this.operator;
+      }
+
+      setAccumulator(value){
+        this.acc = Array.from(String(value));
+      }
+
+      getAccumulator(){
+        return parseFloat(this.acc.join(''));
+      }
+
+      clearAccumulator(){
+        this.acc = [];
+      }
+
+      reset() {
+        this.init();
+      }
+      logger() {
+        console.log({
+          acc: this.acc,
+          operator: this.operator,
+          leftOperand: this.leftOperand,
+          rightOperand: this.rightOperand,
+          state: this.state
+        })
+      }
+
+      output() {
+        let result = 0;
+        if (this.acc.length > 0) {
+          result = this.acc.join('');
+        }
+        return result;
+      }
+    }
+    var calc = new Calculator();
+    // TODO LIST
+
+    // >[x] Calculator Class
+    //   [x] Constructor
+    //   [x] Init
+    //     [x] Accumulator
+    //     [x] Operator
+    //     [x] Left Operand
+    //     [x] Right Operand
+    //     [x] State
+    //     [x] Strategy
+    //     [x] Transition to Default State
+    //   [x] Transition
+    //   [x] Input
+    //   [x] Output
+    //   [x] Logger
+    //   [x] Reset
+    //   [x] Operation
+    //   [x] get, set Left Operand
+    //   [x] get, set  Right Operand
+    //   [x] get, set  Operator
+    //   [x] get, set, clear  Accumulator
+    // [x] Strategies
+    //   [x] Base Strategy
+    //   [x] Left Operand Strategy
+    //   [x] Operator Strategy
+    //   [x] Right Operand Strategy
+    //   [x] Result Strategy
+    </script>
+</body>
+</html>
